@@ -1,4 +1,3 @@
-# ---------- Security Group for EC2 ----------
 resource "aws_security_group" "ec2_sg" {
   name        = "ec2-web-sg"
   description = "Allow SSH and HTTP access"
@@ -32,7 +31,6 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# ---------- EC2 Instance ----------
 resource "aws_instance" "web" {
   ami                         = "ami-0e2bc5787d3b38798" # Amazon Linux 2
   instance_type               = "t2.micro"
