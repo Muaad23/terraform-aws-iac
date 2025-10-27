@@ -96,7 +96,7 @@ Below is the deployed EC2 instance visible in the AWS Console:
 
 Below is the RDS MySQL instance created via Terraform:
 
-![alt text](../images/RDS-Database.png)
+![cd](../images/RDS-Database.png)
 
 ## Security Design
 
