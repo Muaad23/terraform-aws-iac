@@ -1,58 +1,71 @@
-name: 🧱 Build • 🧪 Test • 🚀 Deploy Demo (via SSM)
+name: Build • Test •  Deploy (ECR → ECS Fargate)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+
+env:
+  AWS_REGION: eu-west-2
+  ECR_REPOSITORY: phase4-demo
+  ECS_CLUSTER: phase4-cluster
+  ECS_SERVICE: phase4-service
+  CONTAINER_NAME: phase4-container
 
 jobs:
-  # -------------------------
-  # 🏗️ BUILD STAGE
-  # -------------------------
+
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 🧰 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
 
-      - name: 🏗️ Simulate build
-        run: |
-          echo "Building the project..."
-          sleep 3
-          echo "✅ Build complete!"
+      - name:  Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: 📦 Upload fake artifact
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          echo "Building $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Upload image metadata
         uses: actions/upload-artifact@v4
         with:
-          name: demo-artifact
-          path: .
+          name: image-metadata
+          path: ${{ github.workspace }}/
   
-  # -------------------------
-  # 🧪 TEST STAGE
-  # -------------------------
+
   test:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: 📥 Download build artifact
+      - name: Download image metadata
         uses: actions/download-artifact@v4
         with:
-          name: demo-artifact
+          name: image-metadata
 
-      - name: 🧪 Simulate tests
+      - name:  Run basic container test
         run: |
-          echo "Running sample tests..."
-          sleep 2
-          echo "✅ All tests passed!"
+          echo "Pulling and testing container..."
+          docker run --rm $IMAGE_URI echo " Container runs successfully!"
 
-  # -------------------------
-  # 🚀 DEPLOY STAGE
-  # -------------------------
+
   deploy:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - name: 🧰 Checkout code
+      - name:  Checkout code
         uses: actions/checkout@v4
 
       - name: 🔧 Configure AWS credentials
@@ -60,22 +73,19 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-2
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: 🚀 Simulate deploy via AWS SSM
+      - name: Deploy new image to ECS
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=ip-address,Values=${{ secrets.EC2_IP }}" \
-            --query "Reservations[0].Instances[0].InstanceId" \
-            --output text)
+          echo "Redeploying ECS service with latest image..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment
 
-          echo "Deploying to instance: $INSTANCE_ID"
-          aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellScript" \
-            --comment "GitHub Actions Test Deployment" \
-            --parameters 'commands=[
-              "echo Deploying demo files...",
-              "echo $(date) > /var/www/html/deployment_log.txt",
-              "echo ✅ Demo deployment complete!"
-            ]'
+      - name:  Verify ECS service health
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE
+          echo " ECS service is stable and running!"
