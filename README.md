@@ -6,8 +6,9 @@ This project builds a scalable AWS cloud environment using Terraform, delivered 
 |-------|--------------|--------|
 | ⚙️ [Phase 1 – AWS Infra (VPC + EC2 + RDS)](./phase1_infra/README.md) | Core infrastructure | ✅ Completed |
 | 🔄 [Phase 2 – Scalable Web App (ALB + Auto Scaling)](./phase2_scaling/README.md) | High availability & scaling | ✅ Completed |
-| 🐳 Phase 3 – CI/CD Pipeline (GitHub Actions + EC2) | Continuous deployment | 🔜 |
-| 📊 Phase 4 – Docker + ECS (Fargate) | Containerization | 🔜 |
-| 📈 Phase 5 – Monitoring + Alerts (CloudWatch + SNS) | Observability & alerting | 🔜 |
+| 🧱 [Phase 3 – CI/CD Pipeline (GitHub Actions + EC2)](./phase3_ci_cd/README.md) | Continuous deployment | ✅ Completed |
+| 📊 Phase 4 – Docker + ECS (Fargate) | Containerisation | 🔜 In Progress |
+| 📈 Phase 5 – Monitoring + Alerts (CloudWatch + SNS) | Observability & alerting | 🔜 Pending |
+
 
 
