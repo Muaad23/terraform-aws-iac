@@ -37,14 +37,16 @@ jobs:
           echo "Building $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./phase4_docker_ecs
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo $IMAGE_URI > image_uri.txt
 
       - name: Upload image metadata
         uses: actions/upload-artifact@v4
         with:
           name: image-metadata
-          path: ${{ github.workspace }}/
-  
+          path: image_uri.txt
+
 
   test:
     runs-on: ubuntu-latest
@@ -58,8 +60,9 @@ jobs:
       - name:  Run basic container test
         run: |
           echo "Pulling and testing container..."
-          docker run --rm $IMAGE_URI echo " Container runs successfully!"
-
+          IMAGE_URI=$(cat image_uri.txt)
+          echo "Testing container: $IMAGE_URI"
+          docker run --rm $IMAGE_URI echo "✅ Container runs successfully!"
 
   deploy:
     runs-on: ubuntu-latest
